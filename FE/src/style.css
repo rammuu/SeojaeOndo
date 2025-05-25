@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.nav-item {
+  @apply text-sm text-gray-700 hover:underline outline-none select-none cursor-pointer;
+}

@@ -5,13 +5,13 @@ export function registerUser(payload) {
 }
 
 
-export function checkUsername(username) {
+export function checkUsernameAPI(username) {
   return api.get('auth/check-username/', {
     params: { username }
   })
 }
 
-export function checkNickname(nickname) {
+export function checkNicknameAPI(nickname) {
   return api.get('auth/check-nickname/', {
     params: { nickname }
   })
