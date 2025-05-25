@@ -10,7 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+
+REST_AUTH_TOKEN_MODEL = None
+
 from pathlib import Path
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -30,11 +34,13 @@ ALLOWED_HOSTS = []
 
 # Application definition
 
+
+
 INSTALLED_APPS = [
     'accounts',
     'rest_framework',
     'rest_framework.authtoken',
-    'rest_framework_simplejwt.token_blacklist',
+    'rest_framework_simplejwt',
     'dj_rest_auth',
     'dj_rest_auth.registration',
     'allauth',
@@ -53,6 +59,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
+
+
+
 AUTH_USER_MODEL = 'accounts.User'
 
 SITE_ID = 1
@@ -61,7 +70,7 @@ ACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_AUTHENTICATION_METHOD = "username"
 ACCOUNT_EMAIL_REQUIRED = False
 
-
+REST_USE_JWT = False
 
 REST_AUTH_REGISTER_SERIALIZERS = {
     'REGISTER_SERIALIZER': 'accounts.serializers.CustomRegisterSerializer',
@@ -69,7 +78,7 @@ REST_AUTH_REGISTER_SERIALIZERS = {
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',  # 인증된 요청인지 확인
@@ -78,14 +87,18 @@ REST_FRAMEWORK = {
     ),
 }
 
-REST_USE_JWT = True
+
 
 from datetime import timedelta
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS': False,
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30), ### 1 -> access token의 수명을 30분으로 설정
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1), ### 1 -> refresh token의 수명을 하루로 설정
+    'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer', ), ### 2 -> 토큰 인증 방식을 bearer로 설정
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken', ),
+    'ACCESS_TOKEN': 'access_token',
+    'REFRESH_TOKEN': 'refresh_token',
 }
 
 
@@ -183,4 +196,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',  # Vue 개발 서버 주소
+    'http://127.0.0.1:5173',
 ]
+
+CORS_ALLOW_CREDENTIALS = True
+
+LOGIN_REDIRECT_URL = 'http://localhost:5173/social-login/callback/'
+
+ACCOUNT_LOGOUT_REDIRECT_URL = '/'

@@ -7,9 +7,16 @@ from rest_framework import serializers
 from allauth.socialaccount.providers.oauth2.client import OAuth2Error
 from allauth.socialaccount.models import SocialToken
 import requests
+from .models import User
+
+# User = get_user_model()
 
 
-User = get_user_model()
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'name', 'nickname', 'phone_number', 'favorite_categories']
+
 
 class CustomRegisterSerializer(RegisterSerializer):
     email = serializers.EmailField(required=True)
