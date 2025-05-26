@@ -38,6 +38,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'accounts',
+    'books', # Added books app
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
@@ -69,11 +70,32 @@ ACCOUNT_USER_MODEL_USERNAME_FIELD = "username"
 ACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_AUTHENTICATION_METHOD = "username"
 ACCOUNT_EMAIL_REQUIRED = False
+ACCOUNT_ADAPTER = 'accounts.adapters.CustomAccountAdapter' # Add this line
+SOCIALACCOUNT_LOGIN_ON_GET = True 
+# LOGIN_REDIRECT_URL_FALLBACK will be defined after LOGIN_REDIRECT_URL
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online', # Or 'offline' if you need refresh tokens
+        }
+        # You can add similar configurations for 'naver' if needed
+    }
+}
 
 REST_USE_JWT = False
 
-REST_AUTH_REGISTER_SERIALIZERS = {
+# Consolidating dj-rest-auth serializer settings under REST_AUTH
+REST_AUTH = {
+    'USER_DETAILS_SERIALIZER': 'accounts.serializers.UserSerializer',
     'REGISTER_SERIALIZER': 'accounts.serializers.CustomRegisterSerializer',
+    # Add other dj-rest-auth serializers here if needed, e.g.:
+    # 'LOGIN_SERIALIZER': 'dj_rest_auth.serializers.LoginSerializer',
+    # 'TOKEN_SERIALIZER': 'dj_rest_auth.serializers.TokenSerializer',
 }
 
 REST_FRAMEWORK = {
@@ -105,9 +127,8 @@ SIMPLE_JWT = {
 SOCIALACCOUNT_ADAPTER = 'accounts.adapters.CustomSocialAccountAdapter'
 
 
-REST_AUTH_SERIALIZERS = {
-    'SOCIAL_LOGIN_SERIALIZER': 'accounts.serializers.CustomSocialLoginSerializer',
-}
+# REST_AUTH_SERIALIZERS is removed as SocialLoginSerializer is no longer used by dj-rest-auth
+# and the custom serializer has been removed.
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -202,5 +223,10 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 LOGIN_REDIRECT_URL = 'http://localhost:5173/social-login/callback/'
+LOGIN_REDIRECT_URL_FALLBACK = LOGIN_REDIRECT_URL # Define it here, after LOGIN_REDIRECT_URL
 
 ACCOUNT_LOGOUT_REDIRECT_URL = '/'
+
+from decouple import config
+
+OPENAI_API_KEY = config("OPENAI_API_KEY")

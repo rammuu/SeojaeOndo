@@ -8,4 +8,5 @@ urlpatterns = [
     path('api/auth/registration/', include('dj_rest_auth.registration.urls')),
     path("api/auth/", include("allauth.socialaccount.urls")),
     path('accounts/', include('allauth.urls')),
+    path('api/books/', include('books.urls')), # Added books app urls, added trailing slash
 ]

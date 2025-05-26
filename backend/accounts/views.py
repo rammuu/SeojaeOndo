@@ -1,27 +1,19 @@
 # accounts/views.py
 from dj_rest_auth.registration.views import RegisterView
-from .serializers import CustomRegisterSerializer
-from allauth.socialaccount.models import SocialApp
-from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
-from allauth.socialaccount.providers.naver.views import NaverOAuth2Adapter
-from allauth.socialaccount.providers.kakao.views import KakaoOAuth2Adapter
-from dj_rest_auth.registration.views import SocialLoginView
-from .serializers import GoogleSocialLoginSerializer
-from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+from .serializers import CustomRegisterSerializer # Keep CustomRegisterSerializer if used by CustomRegisterView
+# Removed SocialApp, provider-specific adapters, SocialLoginView, OAuth2Client as custom social views are removed
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
-from .serializers import UserSerializer
-from django.shortcuts import redirect
-from allauth.socialaccount.helpers import complete_social_login
-from allauth.socialaccount.models import SocialLogin, SocialAccount
-import requests
-from rest_framework.authtoken.models import Token
-from asgiref.sync import async_to_sync
-
-from allauth.account.utils import perform_login
+from .serializers import UserSerializer # Keep UserSerializer if used by UserInfoView
+# Removed redirect, complete_social_login, SocialLogin, SocialAccount, requests, Token, status if only used by removed views
+# Removed perform_login if only used by removed views
+# Note: Some of these imports might be needed by remaining views. Will adjust if errors occur.
+# For now, focusing on removing the direct dependencies of the deleted views.
+from rest_framework.authtoken.models import Token # Keep if token generation is needed elsewhere, or remove if adapter handles all
+from rest_framework import status # Keep for general status codes
 
 User = get_user_model()
 
@@ -45,112 +37,9 @@ def check_nickname(request):
     exists = User.objects.filter(nickname=nickname).exists()
     return Response({'available': not exists})
 
-class CustomGoogleLoginView(SocialLoginView):
-    adapter_class = GoogleOAuth2Adapter
-    callback_url = "http://localhost:8000/accounts/google/login/callback/"
-    client_class = OAuth2Client
-    serializer_class = GoogleSocialLoginSerializer
-
-class NaverLogin(SocialLoginView):
-    adapter_class = NaverOAuth2Adapter
-    callback_url = "http://localhost:5173/naver/callback"
-    client_class = OAuth2Client
-    serializer_class = GoogleSocialLoginSerializer
-
-    def post(self, request, *args, **kwargs):
-        print("🔥 POST 요청 도착")
-        print("🔥 request.data =", request.data)
-        return super().post(request, *args, **kwargs)
-
-
-class NaverLoginAPIView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        print("🔥 네이버 로그인 POST 도착")
-        print("🔥 request.data =", request.data)
-        code = request.data.get('code')
-        state = request.data.get('state')
-
-        try:
-            app = SocialApp.objects.get(provider='naver')
-        except SocialApp.DoesNotExist:
-            return Response({'error': 'Naver SocialApp 설정이 필요합니다.'}, status=500)
-
-        token_url = 'https://nid.naver.com/oauth2.0/token'
-        token_params = {
-            'grant_type': 'authorization_code',
-            'client_id': app.client_id,
-            'client_secret': app.secret,
-            'code': code,
-            'state': state,
-        }
-        token_response = requests.get(token_url, params=token_params)
-        token_data = token_response.json()
-        access_token = token_data.get('access_token')
-
-        print("🧾 token_data =", token_data)
-
-        if not access_token:
-            return Response({'error': '네이버 access_token 요청 실패'}, status=400)
-
-        userinfo_url = 'https://openapi.naver.com/v1/nid/me'
-        userinfo_response = requests.get(userinfo_url, headers={
-            'Authorization': f'Bearer {access_token}'
-        })
-        userinfo = userinfo_response.json()
-
-        print("🧾 userinfo =", userinfo)
-        if userinfo.get('resultcode') != '00':
-            return Response({'error': '네이버 사용자 정보 요청 실패'}, status=400)
-
-        adapter = NaverOAuth2Adapter(request)
-        token_dict = {'access_token': access_token}
-
-       
-        response_data = userinfo['response']
-        uid = response_data['id']
-        name = response_data.get('name', '')
-        nickname = response_data.get('nickname', '')
-        phone = response_data.get('mobile', '')
-        email = f"{uid}@naver.com"  # 네이버는 기본 이메일 제공 안하므로 대체 이메일 구성
-
-        # 유저가 이미 존재하는지 확인 또는 새로 생성
-        user, created = User.objects.get_or_create(username=uid, defaults={
-            'email': email,
-            'name': name,
-            'nickname': nickname,
-            'phone_number': phone,
-        })
-
-        # 소셜 계정 객체 구성
-        sociallogin = SocialLogin(
-            user=user,
-            account=SocialAccount(
-                user=user,
-                uid=uid,
-                provider='naver',
-                extra_data=response_data
-            )
-        )
-
-        # 로그인 처리
-        if created:
-            print("🆕 새 사용자 → complete_social_login 실행")
-            complete_social_login(request, sociallogin)
-        else:
-            print("👤 기존 사용자 → perform_login 실행")
-            perform_login(request, user, email_verification='optional')
-
-        # Django 토큰 발급 및 프론트 리디렉션
-        token_obj, _ = Token.objects.get_or_create(user=user)
-        redirect_url = f"http://localhost:5173/social-login/callback/?token={token_obj.key}"
-        print("🔁 리디렉션 URL:", redirect_url)
-        return Response({'token': token_obj.key}, status=200)
-
-class KakaoLogin(SocialLoginView):
-    adapter_class = KakaoOAuth2Adapter
-    serializer_class = GoogleSocialLoginSerializer
+# Removed CustomGoogleLoginView, NaverLogin, NaverLoginAPIView, KakaoLogin
+# as they are part of a different social login flow and reference removed serializers.
+# The current implementation uses django-allauth's standard provider views.
 
 class CustomRegisterView(RegisterView):
     serializer_class = CustomRegisterSerializer
@@ -164,7 +53,50 @@ class UserInfoView(APIView):
         return Response(serializer.data)
     
     def patch(self, request):
-        serializer = UserSerializer(request.user, data=request.GET, partial=True)
+        serializer = UserSerializer(request.user, data=request.data, partial=True)
+
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+class FollowView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, user_pk):
+        try:
+            user_to_follow = User.objects.get(pk=user_pk)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if request.user == user_to_follow:
+            return Response({'error': 'You cannot follow yourself.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Using the through model 'Follow' to create the relationship
+        # from_user is request.user, to_user is user_to_follow
+        from .models import Follow # Import Follow model
+        follow_instance, created = Follow.objects.get_or_create(
+            from_user=request.user, 
+            to_user=user_to_follow
+        )
+
+        if created:
+            return Response({'status': 'followed'}, status=status.HTTP_201_CREATED)
+        else:
+            return Response({'status': 'already following'}, status=status.HTTP_200_OK)
+
+    def delete(self, request, user_pk):
+        try:
+            user_to_unfollow = User.objects.get(pk=user_pk)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        from .models import Follow # Import Follow model
+        deleted_count, _ = Follow.objects.filter(
+            from_user=request.user,
+            to_user=user_to_unfollow
+        ).delete()
+
+        if deleted_count > 0:
+            return Response({'status': 'unfollowed'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'status': 'not following'}, status=status.HTTP_404_NOT_FOUND)

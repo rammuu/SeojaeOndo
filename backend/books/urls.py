@@ -1,0 +1,28 @@
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from . import views
+
+# router = DefaultRouter()
+# router.register(r'categories', CategoryViewSet, basename='category')
+# router.register(r'books', BookViewSet, basename='book')
+# router.register(r'threads', ThreadViewSet, basename='thread') # ThreadViewSet 등록
+
+urlpatterns = [
+    # path('', include(router.urls)),
+
+    path("<int:book_pk>/", views.BookDetailAPIView.as_view(), name="detail"),
+    path("<int:book_pk>/threads/", views.ThreadListAPIView.as_view(), name="thread_list"), # 감상평 목록 URL 추가
+    path("<int:book_pk>/recommendations/", views.BookRecommendationAPIView.as_view(), name="book_recommendations"), # 책 추천 API URL 추가
+    
+    path("<int:book_pk>/thread/create/", views.ThreadCreateAPIView.as_view(), name="thread_create"),
+    path("<int:book_pk>/thread/<int:thread_pk>/", views.ThreadDetailAPIView.as_view(), name="thread_detail"),
+    path("<int:book_pk>/thread/<int:thread_pk>/update/", views.ThreadUpdateAPIView.as_view(), name="thread_update"),
+    path("<int:book_pk>/thread/<int:thread_pk>/delete/", views.ThreadDeleteAPIView.as_view(), name="thread_delete"),
+    path("<int:book_pk>/thread/<int:thread_pk>/likes/", views.ThreadLikeAPIView.as_view(), name="likes"),
+    
+    path("<int:book_pk>/comment/<int:thread_pk>/create/", views.CommentCreateAPIView.as_view(), name="create_comment"),
+    path("<int:book_pk>/comment/<int:comment_pk>/delete/", views.CommentDeleteAPIView.as_view(), name="delete_comment"),
+    path('/comments/<int:comment_pk>/like/', views.CommentLikeAPIView.as_view(), name='comment_like'),
+    
+    path("filter-category/", views.FilterCategoryAPIView.as_view(), name="filter_category"),
+]
