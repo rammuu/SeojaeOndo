@@ -104,25 +104,8 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',  # 인증된 요청인지 확인
-        'rest_framework.permissions.IsAdminUser',  # 관리자만 접근 가능
-        'rest_framework.permissions.AllowAny',  # 누구나 접근 가능
     ),
 }
-
-
-
-from datetime import timedelta
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30), ### 1 -> access token의 수명을 30분으로 설정
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1), ### 1 -> refresh token의 수명을 하루로 설정
-    'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': True,
-    'AUTH_HEADER_TYPES': ('Bearer', ), ### 2 -> 토큰 인증 방식을 bearer로 설정
-    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken', ),
-    'ACCESS_TOKEN': 'access_token',
-    'REFRESH_TOKEN': 'refresh_token',
-}
-
 
 SOCIALACCOUNT_ADAPTER = 'accounts.adapters.CustomSocialAccountAdapter'
 
@@ -230,3 +213,4 @@ ACCOUNT_LOGOUT_REDIRECT_URL = '/'
 from decouple import config
 
 OPENAI_API_KEY = config("OPENAI_API_KEY")
+UPSTAGE_API_KEY = config("UPSTAGE_API_KEY")

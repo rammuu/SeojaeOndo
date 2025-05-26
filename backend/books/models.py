@@ -47,8 +47,6 @@ class Thread(models.Model):
 
     def __str__(self):
         return self.title
-from django.contrib.auth import get_user_model
-User = get_user_model()
 
 class Comment(models.Model):
     content = models.CharField(max_length=100)
@@ -58,7 +56,7 @@ class Comment(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
-    likes = models.ManyToManyField(User, related_name='liked_comments', blank=True)
+    likes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='liked_comments', blank=True)
 
     def __str__(self):
         return self.content

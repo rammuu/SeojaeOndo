@@ -20,9 +20,13 @@ urlpatterns = [
     path("<int:book_pk>/thread/<int:thread_pk>/delete/", views.ThreadDeleteAPIView.as_view(), name="thread_delete"),
     path("<int:book_pk>/thread/<int:thread_pk>/likes/", views.ThreadLikeAPIView.as_view(), name="likes"),
     
-    path("<int:book_pk>/comment/<int:thread_pk>/create/", views.CommentCreateAPIView.as_view(), name="create_comment"),
-    path("<int:book_pk>/comment/<int:comment_pk>/delete/", views.CommentDeleteAPIView.as_view(), name="delete_comment"),
-    path('/comments/<int:comment_pk>/like/', views.CommentLikeAPIView.as_view(), name='comment_like'),
-    
-    path("filter-category/", views.FilterCategoryAPIView.as_view(), name="filter_category"),
+    path("<int:thread_pk>/comment/create/", views.CommentCreateAPIView.as_view(), name="create_comment"),
+    path("<int:thread_pk>/comment/<int:comment_pk>/delete/", views.CommentDeleteAPIView.as_view(), name="delete_comment"),
+    path('comment/<int:comment_pk>/like/', views.CommentLikeAPIView.as_view(), name='comment_like'),
+    path("<int:thread_pk>/comment/", views.ThreadCommentListAPIView.as_view(), name="thread_comment_list"),
+    path("<int:thread_pk>/comment/<int:comment_pk>/update/", views.CommentUpdateAPIView.as_view(), name="update_comment"),
+
+    path("", views.FilterCategoryAPIView.as_view(), name="filter_category"),
+    path('search/', views.FilterBookAPIView.as_view(), name='book-filter'),
+    path('<int:book_id>/bookshelf/', views.ToggleBookshelfView.as_view()),
 ]

@@ -7,13 +7,12 @@ from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
-from .serializers import UserSerializer # Keep UserSerializer if used by UserInfoView
-# Removed redirect, complete_social_login, SocialLogin, SocialAccount, requests, Token, status if only used by removed views
-# Removed perform_login if only used by removed views
-# Note: Some of these imports might be needed by remaining views. Will adjust if errors occur.
-# For now, focusing on removing the direct dependencies of the deleted views.
+from .serializers import UserSerializer
+from books.serializers import BookSerializer
 from rest_framework.authtoken.models import Token # Keep if token generation is needed elsewhere, or remove if adapter handles all
-from rest_framework import status # Keep for general status codes
+from rest_framework import status
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
 User = get_user_model()
 
@@ -37,10 +36,7 @@ def check_nickname(request):
     exists = User.objects.filter(nickname=nickname).exists()
     return Response({'available': not exists})
 
-# Removed CustomGoogleLoginView, NaverLogin, NaverLoginAPIView, KakaoLogin
-# as they are part of a different social login flow and reference removed serializers.
-# The current implementation uses django-allauth's standard provider views.
-
+@method_decorator(csrf_exempt, name='dispatch')
 class CustomRegisterView(RegisterView):
     serializer_class = CustomRegisterSerializer
 
@@ -100,3 +96,20 @@ class FollowView(APIView):
             return Response({'status': 'unfollowed'}, status=status.HTTP_200_OK)
         else:
             return Response({'status': 'not following'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class MyBookshelfView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        books = request.user.bookshelf.all()
+        serializer = BookSerializer(books, many=True)
+        return Response(serializer.data)
+    
+class DeleteAccountView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request):
+        user = request.user
+        user.delete()
+        return Response({'message': '회원 탈퇴가 완료되었습니다.'}, status=status.HTTP_204_NO_CONTENT)
