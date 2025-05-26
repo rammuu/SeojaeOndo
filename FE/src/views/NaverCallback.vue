@@ -15,8 +15,6 @@ onMounted(async () => {
 
   const code = route.query.code
   const state = route.query.state
-  console.log(code)
-  console.log(state)
 
   if (!code || !state) {
     alert('네이버 로그인 실패: code 또는 state 누락')

@@ -18,7 +18,7 @@
       <!-- 로그인 버튼 -->
       <button
         @click="onLogin"
-        class="w-full bg-amber-300 hover:bg-amber-400 text-white font-semibold py-2 rounded-full"
+        class="w-full bg-amber-300 hover:bg-amber-400 text-white font-semibold py-2 rounded-md"
       >
         로그인
       </button>
@@ -31,24 +31,19 @@
       </div>
 
       <!-- 네이버 로그인 -->
-      <button @click="redirectToNaver" class="w-full h-12 bg-green-500 text-white font-semibold rounded-md mb-4">
+      <button @click="redirectToNaver" class="w-full h-10 bg-green-500 text-white font-semibold rounded-md mb-4">
         <span class="flex items-center justify-center">
           <img src="/naver.svg" alt="naver" class="w-5 h-5 mr-2" />
           네이버 로그인
         </span>
       </button>
 
-      <!-- 카카오 로그인 -->
-      <a :href="kakaoLoginUrl" class="w-full bg-yellow-300 text-black py-2 rounded-full font-semibold flex items-center justify-center mb-3">
-        <img src="/kakao.png" alt="kakao" class="w-5 h-5 mr-2" />
-        카카오 로그인
-      </a>
-
-      <!-- 구글 로그인 -->
-      <a :href="googleLoginUrl" class="w-full border border-gray-500 text-gray-800 py-2 rounded-full font-semibold flex items-center justify-center">
-        <img src="/google.png" alt="google" class="w-5 h-5 mr-2" />
-        구글 로그인
-      </a>
+      <button @click="redirectToGoogle" class="w-full h-10 border border-gray-500 text-gray-800 font-semibold rounded-md mb-4">
+        <span class="flex items-center justify-center">
+          <img src="/google.png" alt="naver" class="w-5 h-5 mr-2" />
+          구글 로그인
+        </span>
+      </button>
 
       <!-- 아이디 찾기 / 비밀번호 찾기 -->
       <div class="text-xs text-right mt-2 text-gray-500">
@@ -82,9 +77,11 @@ async function onLogin() {
     })
 
     const token = response.data.key
-    localStorage.setItem('authToken', token)
-    userStore.setToken(token)
-    userStore.setUsername(form.username)
+    localStorage.setItem('auth_token', token)
+    axios.defaults.headers.common['Authorization'] = `Token ${token}`
+
+    const userRes = await axios.get('http://127.0.0.1:8000/api/auth/user/')
+    userStore.setUser(userRes.data)
     alert('로그인 성공')
     router.push('/')
   } catch (err) {
@@ -92,24 +89,13 @@ async function onLogin() {
   }
 }
 
-const NAVER_CLIENT_ID = '7ERX5hjREVcs6iqwMjLp'  // 실제 값으로 바꿔주세요
-const REDIRECT_URI = 'http://localhost:5173/naver/callback'
-
 function redirectToNaver() {
-  const state = Date.now().toString()  // CSRF 방지용, 간단히 timestamp 사용
-  const url = `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${NAVER_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=${state}`
-  window.location.href = url
+  window.location.href = 'http://127.0.0.1:8000/accounts/naver/login/?process=login'
 }
 
-const googleLoginUrl = computed(() =>
-  'http://127.0.0.1:8000/accounts/google/login/?process=login'
-)
-const kakaoLoginUrl = computed(() =>
-  'http://127.0.0.1:8000/accounts/kakao/login/?process=login'
-)
-const naverLoginUrl = computed(() =>
-  'http://127.0.0.1:8000/accounts/naver/login/?process=login'
-)
+function redirectToGoogle() {
+  window.location.href = 'http://127.0.0.1:8000/accounts/google/login/?process=login'
+}
 </script>
 
 <style scoped>

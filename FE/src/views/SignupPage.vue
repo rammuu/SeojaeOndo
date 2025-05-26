@@ -133,6 +133,10 @@ async function onSubmit() {
       alert('비밀번호가 일치하지 않습니다.')
       return
     }
+    if (nicknameAvailable.value !== true) {
+      alert('닉네임 중복 여부를 확인해 주세요.')
+      return
+    }
     const res = await registerUser(form)
     const { access, refresh } = res.data
     localStorage.setItem('access', access)

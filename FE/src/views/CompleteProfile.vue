@@ -1,92 +1,149 @@
 <template>
-  <div class="max-w-lg mx-auto mt-12 p-6 bg-white shadow rounded-md">
-    <h2 class="text-xl font-bold mb-4">추가 정보 입력</h2>
-    <form @submit.prevent="onSubmit" class="space-y-4">
-      <div>
-        <label class="block font-semibold">닉네임</label>
-        <input v-model="form.nickname" class="input" type="text" required />
-      </div>
-      <div>
-        <label class="block font-semibold">연락처</label>
-        <input v-model="form.phone_number" class="input" type="text" required />
-      </div>
-      <div>
-        <label class="block font-semibold">선호 도서 카테고리</label>
-        <div class="grid grid-cols-3 gap-2">
+  <div class="flex justify-center mt-10">
+    <div class="w-full max-w-md">
+      <h2 class="text-2xl font-bold mb-6 text-center">프로필 정보 추가 입력</h2>
+      <p class="text-center text-gray-600 mb-6">
+        서비스 이용을 위해 추가 정보를 입력해주세요.
+      </p>
+      <form @submit.prevent="updateProfile" class="space-y-6">
+        <div>
+          <label for="name" class="block text-sm font-medium text-gray-700 mb-1">이름</label>
+          <input
+            type="text"
+            id="name"
+            v-model="form.name"
+            class="input"
+            :disabled="!!userStore.user?.name"
+            placeholder="이름을 입력하세요"
+          />
+        </div>
+        <div>
+          <label for="nickname" class="block text-sm font-medium text-gray-700 mb-1">닉네임</label>
+          <input
+            type="text"
+            id="nickname"
+            v-model="form.nickname"
+            class="input"
+            :disabled="!!userStore.user?.nickname"
+            placeholder="닉네임을 입력하세요"
+          />
+          <!-- TODO: Add nickname availability check if needed -->
+        </div>
+        <div>
+          <label for="phone_number" class="block text-sm font-medium text-gray-700 mb-1">전화번호</label>
+          <input
+            type="tel"
+            id="phone_number"
+            v-model="form.phone_number"
+            class="input"
+            :disabled="!!userStore.user?.phone_number"
+            placeholder="010-1234-5678"
+          />
+        </div>
+        <div>
           <button
-            v-for="category in categoryOptions"
-            :key="category"
-            type="button"
-            :class="['category-btn', form.favorite_categories.includes(category) ? 'selected' : '']"
-            @click="toggleCategory(category)"
+            type="submit"
+            class="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+            :disabled="isSubmitting"
           >
-            {{ category }}
+            {{ isSubmitting ? '저장 중...' : '정보 저장 및 계속하기' }}
           </button>
         </div>
-      </div>
-      <button type="submit" class="submit-btn w-full">저장하고 시작하기</button>
-    </form>
+        <div v-if="errorMessage" class="text-red-500 text-sm text-center">
+          {{ errorMessage }}
+        </div>
+      </form>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { reactive } from 'vue'
-import { useUserStore } from '@/stores/user'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 import axios from 'axios'
 
-const userStore = useUserStore()
 const router = useRouter()
+const userStore = useUserStore()
 
 const form = reactive({
+  name: '',
   nickname: '',
   phone_number: '',
-  favorite_categories: []
 })
 
-const categoryOptions = [
-  '소설/시/희곡',
-  '경제/경영',
-  '자기계발',
-  '인문/교양',
-  '취미/실용',
-  '어린이/청소년',
-  '과학'
-]
+const isSubmitting = ref(false)
+const errorMessage = ref('')
 
-function toggleCategory(category) {
-  const index = form.favorite_categories.indexOf(category)
-  if (index === -1) {
-    form.favorite_categories.push(category)
+onMounted(() => {
+  if (userStore.user) {
+    form.name = userStore.user.name || ''
+    form.nickname = userStore.user.nickname || ''
+    form.phone_number = userStore.user.phone_number || ''
   } else {
-    form.favorite_categories.splice(index, 1)
+    // If no user data in store (e.g., page refresh), redirect to login
+    // Or try to fetch user data again if a token exists
+    if (localStorage.getItem('auth_token')) {
+        axios.get('http://127.0.0.1:8000/api/auth/user/')
+            .then(res => {
+                userStore.setUser(res.data)
+                form.name = userStore.user.name || ''
+                form.nickname = userStore.user.nickname || ''
+                form.phone_number = userStore.user.phone_number || ''
+                if (userStore.user.name && userStore.user.nickname && userStore.user.phone_number) {
+                    router.push('/') // Already complete
+                }
+            })
+            .catch(() => router.push('/login'))
+    } else {
+        router.push('/login')
+    }
   }
-}
+})
 
-async function onSubmit() {
-  try {
-    await axios.patch('http://127.0.0.1:8000/api/auth/user/', form.value, {
-      headers: { Authorization: `Token ${localStorage.getItem('auth_token')}` }
-    })
-    alert('정보가 저장되었습니다!')
+async function updateProfile() {
+  isSubmitting.value = true
+  errorMessage.value = ''
+
+  const dataToUpdate = {}
+  if (!userStore.user?.name && form.name) dataToUpdate.name = form.name
+  if (!userStore.user?.nickname && form.nickname) dataToUpdate.nickname = form.nickname
+  if (!userStore.user?.phone_number && form.phone_number) dataToUpdate.phone_number = form.phone_number
+  
+  if (Object.keys(dataToUpdate).length === 0) {
+    // If all fields were already populated and disabled, or no new data entered
     router.push('/')
-  } catch (e) {
-    alert('정보 저장 실패: ' + JSON.stringify(e.response?.data || e.message))
+    isSubmitting.value = false
+    return
+  }
+
+  try {
+    const response = await axios.patch('http://127.0.0.1:8000/api/auth/user/', dataToUpdate)
+    userStore.setUser(response.data) // Update store with latest user info
+    alert('프로필 정보가 성공적으로 업데이트되었습니다.')
+    router.push('/')
+  } catch (err) {
+    console.error('Profile update error:', err.response?.data || err.message)
+    errorMessage.value = '프로필 업데이트에 실패했습니다. 입력 값을 확인해주세요.'
+    if (err.response?.data) {
+        // More specific error messages
+        if (err.response.data.nickname) {
+            errorMessage.value = `닉네임 오류: ${err.response.data.nickname.join(', ')}`
+        } else if (err.response.data.phone_number) {
+            errorMessage.value = `전화번호 오류: ${err.response.data.phone_number.join(', ')}`
+        }
+    }
+  } finally {
+    isSubmitting.value = false
   }
 }
 </script>
 
 <style scoped>
 .input {
-  @apply border border-gray-300 rounded-md px-3 py-2 w-full;
+  @apply mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm;
 }
-.category-btn {
-  @apply px-4 py-2 rounded-md border border-gray-300 text-sm;
-}
-.category-btn.selected {
-  @apply bg-orange-200 border-orange-400 font-semibold;
-}
-.submit-btn {
-  @apply bg-orange-400 hover:bg-orange-500 text-white px-4 py-2 rounded-md font-bold;
+input:disabled {
+  @apply bg-gray-100 cursor-not-allowed;
 }
 </style>
