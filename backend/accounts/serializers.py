@@ -25,3 +25,14 @@ class CustomRegisterSerializer(RegisterSerializer):
         user.favorite_categories = self.validated_data['favorite_categories']
         user.save()
         return user
+    
+
+class FollowingUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'nickname', 'name']
+
+class FollowerUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'nickname', 'name']

@@ -15,7 +15,7 @@ class User(AbstractUser):
         related_name='followers_set'
     )
 
-    REQUIRED_FIELDS = ['email', 'name', 'phone_number'] # Nickname can be set later
+    REQUIRED_FIELDS = ['email', 'name', 'phone_number', 'nickname']
 
 class Follow(models.Model):
     from_user = models.ForeignKey(User, related_name='following_relations', on_delete=models.CASCADE)
