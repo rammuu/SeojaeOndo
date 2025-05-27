@@ -1,7 +1,6 @@
 from django.db import models
 from django.conf import settings
 import datetime
-
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
 
@@ -30,6 +29,15 @@ class Book(models.Model):
 
     class Meta:
         ordering = ['title']
+
+
+class BookRecommendation(models.Model):
+    base_book = models.ForeignKey('Book', on_delete=models.CASCADE, related_name='recommendation_source')
+    recommended_books = models.ManyToManyField('Book', related_name='recommended_to')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.base_book.title} → 추천 {self.recommended_books.count()}개"
 
 
 class OpenEnding(models.Model):

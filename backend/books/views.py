@@ -221,11 +221,11 @@ class BookRecommendationAPIView(APIView):
             return Response({"error": "기준이 되는 책을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
 
         # 추천 책 목록 가져오기 (top_n은 기본값 또는 쿼리 파라미터로 받을 수 있음)
-        top_n_param = request.query_params.get('top_n', 3)
+        top_n_param = request.query_params.get('top_n', 6)
         try:
             top_n = int(top_n_param)
         except ValueError:
-            top_n = 3
+            top_n = 6
 
         try:
             base_book = Book.objects.get(pk=book_pk)
