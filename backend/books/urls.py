@@ -29,4 +29,9 @@ urlpatterns = [
     path("", views.FilterCategoryAPIView.as_view(), name="filter_category"),
     path('search/', views.FilterBookAPIView.as_view(), name='book-filter'),
     path('<int:book_id>/bookshelf/', views.ToggleBookshelfView.as_view()),
+
+    path('alternate-ending/', views.AlternateEndingView.as_view(), name='alternate-ending'),
+    path('<int:book_pk>/open-endings/', views.OpenEndingCreateView.as_view(), name='open-ending-create'),
+    path('<int:book_id>/endingslist/', views.BookOpenEndingsView.as_view(), name='book-open-endings'),
+    path('open-endings/<int:pk>/', views.OpenEndingDetailView.as_view(), name='open-ending-detail'),
 ]

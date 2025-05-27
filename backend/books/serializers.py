@@ -1,6 +1,6 @@
 # serializers.py
 from rest_framework import serializers
-from .models import Book, Thread, Comment, Category
+from .models import Book, Thread, Comment, Category, OpenEnding
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -46,3 +46,13 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def get_like_count(self, obj):
         return obj.likes.count()
+    
+
+
+class OpenEndingSerializer(serializers.ModelSerializer):
+    user_nickname = serializers.CharField(source='user.nickname', read_only=True)
+
+    class Meta:
+        model = OpenEnding
+        fields = ['id', 'user_nickname', 'content', 'created_at']
+        read_only_fields = ['id', 'created_at']

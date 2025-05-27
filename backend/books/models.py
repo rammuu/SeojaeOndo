@@ -32,6 +32,17 @@ class Book(models.Model):
         ordering = ['title']
 
 
+class OpenEnding(models.Model):
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name='open_endings')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.nickname or self.user.username} - {self.book.title} 열린 결말"
+    
+
+
 class Thread(models.Model):
     title = models.CharField(max_length=100)
     content = models.TextField()

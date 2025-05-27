@@ -3,13 +3,15 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics, permissions # generics, permissions 추가
 from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly, IsAuthenticated
-from .models import Book, Thread, Comment # Category 모델은 현재 뷰에서 사용하지 않으므로 그대로 둡니다.
+from .models import Book, Thread, Comment, OpenEnding # Category 모델은 현재 뷰에서 사용하지 않으므로 그대로 둡니다.
 from .serializers import (
-    BookSerializer, ThreadSerializer, CommentSerializer # CategorySerializer도 그대로 둡니다.
+    BookSerializer, ThreadSerializer, CommentSerializer, OpenEndingSerializer # CategorySerializer도 그대로 둡니다.
 )
 from .utils import generate_image_with_openai
 from .recommender import recommend_books
-# IsOwnerOrReadOnly 와 utils는 ThreadListAPIView에서 직접 사용하지 않으므로 일단 그대로 둡니다.
+
+import openai
+from django.conf import settings
 
 
 class BookListAPIView(APIView):
@@ -230,7 +232,7 @@ class BookRecommendationAPIView(APIView):
         except Book.DoesNotExist:
             return Response({"error": "기준이 되는 책을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
 
-        recommended_books_list = recommend_books(base_book.title, request.user, top_n=top_n, base_book_id=book_pk)
+        recommended_books_list = recommend_books(base_book.title, top_n=top_n, base_book_id=book_pk)
 
         if not recommended_books_list:
             return Response({"message": "추천할 책이 없거나 추천 과정에서 오류가 발생했습니다."}, status=status.HTTP_200_OK)
@@ -302,3 +304,107 @@ class ToggleBookshelfView(APIView):
         else:
             user.bookshelf.add(book)
             return Response({"message": "서재에 추가되었습니다.", "in_bookshelf": True})
+        
+
+
+
+class AlternateEndingView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        book_title = request.data.get("book_title")
+        change_description = request.data.get("change_description")
+
+        if not book_title or not change_description:
+            return Response({"detail": "책 제목과 변경 설명을 모두 입력해주세요."}, status=status.HTTP_400_BAD_REQUEST)
+
+        prompt = (
+            f"책 제목: {book_title}\n"
+            f"바꾸고 싶은 부분 설명: {change_description}\n\n"
+            f"위 내용을 바탕으로 새로운 결말을 만들어 주세요. 감동적이고 창의적으로 작성해 주세요."
+        )
+
+        try:
+            openai.api_key = settings.OPENAI_API_KEY
+            response = openai.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "당신은 창의적인 소설 작가입니다."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.8,
+                max_tokens=800,
+            )
+            new_ending = response.choices[0].message.content.strip()
+            return Response({"alternate_ending": new_ending})
+        except Exception as e:
+            return Response({"detail": f"OpenAI API 오류: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class OpenEndingCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, book_pk):
+        try:
+            book = Book.objects.get(pk=book_pk)
+        except Book.DoesNotExist:
+            return Response({"detail": "Book not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        content = request.data.get('content')
+        if not content:
+            return Response({"detail": "결말 내용을 입력해주세요."}, status=status.HTTP_400_BAD_REQUEST)
+
+        open_ending = OpenEnding.objects.create(
+            user=request.user,
+            book=book,
+            content=content
+        )
+        serializer = OpenEndingSerializer(open_ending)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class BookOpenEndingsView(APIView):
+    def get(self, request, book_id):
+        try:
+            book = Book.objects.get(id=book_id)
+        except Book.DoesNotExist:
+            return Response({"detail": "Book not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        endings = book.open_endings.all()
+        serializer = OpenEndingSerializer(endings, many=True)
+        return Response(serializer.data)
+    
+class OpenEndingDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk, user):
+        try:
+            open_ending = OpenEnding.objects.get(pk=pk)
+            if open_ending.user != user:
+                return None  # 본인 글만 접근 가능
+            return open_ending
+        except OpenEnding.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        open_ending = self.get_object(pk, request.user)
+        if not open_ending:
+            return Response({"detail": "해당 결말이 존재하지 않거나 권한이 없습니다."}, status=404)
+        serializer = OpenEndingSerializer(open_ending)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        open_ending = self.get_object(pk, request.user)
+        if not open_ending:
+            return Response({"detail": "수정 권한이 없습니다."}, status=403)
+        
+        serializer = OpenEndingSerializer(open_ending, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+    def delete(self, request, pk):
+        open_ending = self.get_object(pk, request.user)
+        if not open_ending:
+            return Response({"detail": "삭제 권한이 없습니다."}, status=403)
+        open_ending.delete()
+        return Response({"detail": "삭제 완료"}, status=204)
