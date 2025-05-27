@@ -42,6 +42,30 @@ class OpenEnding(models.Model):
         return f"{self.user.nickname or self.user.username} - {self.book.title} 열린 결말"
     
 
+class OpenEndingLike(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    open_ending = models.ForeignKey('OpenEnding', on_delete=models.CASCADE, related_name='likes')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'open_ending'], name='unique_open_ending_like')
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} likes 결말 {self.open_ending.id}"
+
+class OpenEndingComment(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    open_ending = models.ForeignKey('OpenEnding', on_delete=models.CASCADE, related_name='comments')
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Comment by {self.user.username} on 결말 {self.open_ending.id}"
+
+
+
 
 class Thread(models.Model):
     title = models.CharField(max_length=100)

@@ -3,9 +3,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics, permissions # generics, permissions 추가
 from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly, IsAuthenticated
-from .models import Book, Thread, Comment, OpenEnding # Category 모델은 현재 뷰에서 사용하지 않으므로 그대로 둡니다.
+from .models import Book, Thread, Comment, OpenEnding, OpenEndingLike, OpenEndingComment # Category 모델은 현재 뷰에서 사용하지 않으므로 그대로 둡니다.
 from .serializers import (
-    BookSerializer, ThreadSerializer, CommentSerializer, OpenEndingSerializer # CategorySerializer도 그대로 둡니다.
+    BookSerializer, ThreadSerializer, CommentSerializer, OpenEndingSerializer, OpenEndingCommentSerializer
 )
 from .utils import generate_image_with_openai
 from .recommender import recommend_books
@@ -408,3 +408,85 @@ class OpenEndingDetailView(APIView):
             return Response({"detail": "삭제 권한이 없습니다."}, status=403)
         open_ending.delete()
         return Response({"detail": "삭제 완료"}, status=204)
+    
+class OpenEndingLikeToggleView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        user = request.user
+        try:
+            ending = OpenEnding.objects.get(pk=pk)
+        except OpenEnding.DoesNotExist:
+            return Response({"detail": "결말이 존재하지 않습니다."}, status=404)
+
+        like, created = OpenEndingLike.objects.get_or_create(user=user, open_ending=ending)
+        if not created:
+            like.delete()
+            return Response({"liked": False})
+        return Response({"liked": True})
+
+
+class OpenEndingCommentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            ending = OpenEnding.objects.get(pk=pk)
+        except OpenEnding.DoesNotExist:
+            return Response({"detail": "결말이 존재하지 않습니다."}, status=404)
+
+        comments = ending.comments.all().order_by('-created_at')
+        serializer = OpenEndingCommentSerializer(comments, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, pk):
+        try:
+            ending = OpenEnding.objects.get(pk=pk)
+        except OpenEnding.DoesNotExist:
+            return Response({"detail": "결말이 존재하지 않습니다."}, status=404)
+
+        content = request.data.get("content")
+        if not content:
+            return Response({"detail": "댓글 내용을 입력해주세요."}, status=400)
+
+        comment = OpenEndingComment.objects.create(
+            user=request.user,
+            open_ending=ending,
+            content=content
+        )
+        serializer = OpenEndingCommentSerializer(comment)
+        return Response(serializer.data, status=201)
+
+
+class OpenEndingCommentDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, comment_id, user):
+        try:
+            comment = OpenEndingComment.objects.get(pk=comment_id)
+            if comment.user != user:
+                return None
+            return comment
+        except OpenEndingComment.DoesNotExist:
+            return None
+
+    def put(self, request, comment_id):
+        comment = self.get_object(comment_id, request.user)
+        if not comment:
+            return Response({"detail": "수정 권한이 없습니다."}, status=403)
+        
+        content = request.data.get("content")
+        if not content:
+            return Response({"detail": "댓글 내용을 입력해주세요."}, status=400)
+        
+        comment.content = content
+        comment.save()
+        serializer = OpenEndingCommentSerializer(comment)
+        return Response(serializer.data)
+
+    def delete(self, request, comment_id):
+        comment = self.get_object(comment_id, request.user)
+        if not comment:
+            return Response({"detail": "삭제 권한이 없습니다."}, status=403)
+        comment.delete()
+        return Response({"detail": "댓글이 삭제되었습니다."}, status=204)

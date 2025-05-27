@@ -34,4 +34,8 @@ urlpatterns = [
     path('<int:book_pk>/open-endings/', views.OpenEndingCreateView.as_view(), name='open-ending-create'),
     path('<int:book_id>/endingslist/', views.BookOpenEndingsView.as_view(), name='book-open-endings'),
     path('open-endings/<int:pk>/', views.OpenEndingDetailView.as_view(), name='open-ending-detail'),
+
+    path('open-endings/<int:pk>/like/', views.OpenEndingLikeToggleView.as_view(), name='open-ending-like'),
+    path('open-endings/<int:pk>/comments/', views.OpenEndingCommentView.as_view(), name='open-ending-comments'),
+    path('open-endings/comments/<int:comment_id>/', views.OpenEndingCommentDetailView.as_view(), name='open-ending-comment-detail'),
 ]
